@@ -22,15 +22,14 @@ def Newton_manual(J, F, u, bcs, atol, rtol, max_it, relax, u_res):
 
         # Compute residual
         residual = b.norm('l2')
-        print Iter
         if Iter == 0:
-                rel_res0 = residual
-                rel_res = 1
-            else:
-                rel_res = residual / rel_res0
+            rel_res0 = residual
+            rel_res = 1
+        else:
+            rel_res = residual / rel_res0
 
 
         if MPI.rank(mpi_comm_world()) == 0:
             print "Newton iteration %d: r (atol) = %.3e (tol = %.3e), r (rel) = %.3e (tol = %.3e) " \
-                            % (Iter, residual, atol, residual/rel_res0, rtol)
+                            % (Iter, residual, atol, residual/rel_res, rtol)
         Iter += 1
