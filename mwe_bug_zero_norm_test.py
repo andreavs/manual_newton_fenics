@@ -1,5 +1,11 @@
 from fenics import *
 from newton import Newton_manual
+"""
+This code solves the poisson equation with fixed 0 on the boundary, it was used
+to highlight an earlier bug where the solver would crash if the initial guess
+for the solution had norm 0.
+"""
+
 
 mesh = UnitSquareMesh(10,10)
 V = FunctionSpace(mesh, 'CG', 1)
