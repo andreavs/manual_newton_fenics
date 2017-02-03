@@ -1,5 +1,4 @@
 from fenics import *
-import numpy as np
 
 def Newton_manual(J, F, u, u_res, bcs=[], atol=1e-12, rtol=1e-12, max_it=20, relax= 1):
     # Reset counters
@@ -31,5 +30,5 @@ def Newton_manual(J, F, u, u_res, bcs=[], atol=1e-12, rtol=1e-12, max_it=20, rel
 
         if MPI.rank(mpi_comm_world()) == 0:
             print "Newton iteration %d: r (atol) = %.3e (tol = %.3e), r (rel) = %.3e (tol = %.3e) " \
-                            % (Iter, residual, atol, residual/rel_res, rtol)
+                            % (Iter, residual, atol, rel_res, rtol)
         Iter += 1
