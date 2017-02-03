@@ -22,4 +22,4 @@ Jac = derivative(F, u, dw)
 tol = 1e-12
 relax = 1.0
 u_res = Function(V)
-Newton_manual(Jac, F, u, bcs, tol, tol, 20, relax, u_res)
+Newton_manual(Jac, F, u, u_res, bcs)

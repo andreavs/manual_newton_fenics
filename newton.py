@@ -1,7 +1,7 @@
 from fenics import *
 import numpy as np
 
-def Newton_manual(J, F, u, bcs, atol, rtol, max_it, relax, u_res):
+def Newton_manual(J, F, u, u_res, bcs=[], atol=1e-12, rtol=1e-12, max_it=20, relax= 1):
     # Reset counters
     Iter = 0
     residual = 1
