@@ -20,6 +20,9 @@ z1, z2 are the valencies of the ions.
 In this example, the ions start with a high concentration on the left half of
 an interval, and a low concentration on the right half. The initial
 concentrations are equal.
+
+We use dirichlet boundary conditions for the ions, and a pure von neuman
+boundary for the electric field.
 """
 
 
