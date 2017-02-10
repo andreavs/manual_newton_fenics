@@ -35,20 +35,26 @@ for N in N_list:
 
     # Solve for f and exact bc
     a = -inner(grad(u), grad(v))*dx
-    L = inner(f, v)*dx
+    L = inner(f,v)*dx
+
+    F = a - L
+
     u_sol = Function(W)
     bcs = [DirichletBC(W, u_e, "on_boundary")]
 
-    # Built-in solver 
-    #solve(a == L, u_sol, bcs)
+    # Built-in solver
+    # solve(F == 0, u, bcs)
+
 
     # Manual newton
-    F = a - L
     w = TrialFunction(W)
     J = derivative(F, u, w)
     Newton_manual(J, F, u, u_sol, bcs=bcs)
 
-    error.append(errornorm(u_e, u_sol, norm_type="l2", degree_rise=3))
+    plot(interpolate(u_e,W))
+    plot(u_sol, interactive=True)
+
+    error.append(errornorm(u_e, u, norm_type="l2", degree_rise=3))
     h.append(mesh.hmin())
 
 # FIXME: Visualize u_e and u_sol to see where the error is. On the boundary?
