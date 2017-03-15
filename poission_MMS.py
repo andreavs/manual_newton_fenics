@@ -51,8 +51,8 @@ for N in N_list:
     J = derivative(F, u, w)
     Newton_manual(J, F, u, u_sol, bcs=bcs)
 
-    plot(interpolate(u_e,W))
-    plot(u_sol, interactive=True)
+    # plot(interpolate(u_e,W))
+    # plot(u_sol, interactive=True)
 
     error.append(errornorm(u_e, u, norm_type="l2", degree_rise=3))
     h.append(mesh.hmin())

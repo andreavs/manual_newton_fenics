@@ -54,6 +54,8 @@ def run_mms(dt, N):
         u_1.vector().zero()
         u_1.vector().axpy(1, u_sol.vector())
 
+        # plot(u_1.sub(0))
+
         t_ += dt
         t.assign(t_)
 
@@ -74,5 +76,6 @@ if __name__ == "__main__":
         error.append(error_h)
 
     print "Spatial convergence rate:"
+    print h
     for i in range(len(N_list) - 1):
         print math.log(error[i] / error[i+1]) / math.log(h[i] / h[i+1])
