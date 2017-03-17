@@ -44,7 +44,7 @@ def run_mms(dt,N):
     c1, c2, phi, dummy = split(u)
     c1_new, c2_new, phi_new, dummy_new = split(u_new)
 
-    theta = 0
+    theta = 0.5
     c1_theta = theta*c1 + (1-theta)*c1_new
     c2_theta = theta*c2 + (1-theta)*c2_new
     phi_theta = theta*phi + (1-theta)*phi_new
@@ -64,7 +64,7 @@ def run_mms(dt,N):
     z1 = 1 # valency
     z2 = -1 # valency
 
-    dt = 1e-3 # time step, ms
+    # dt = 1e-3 # time step, ms
 
 
     t = Constant(0)
@@ -100,7 +100,7 @@ def run_mms(dt,N):
         D1*c1_theta*z1*nabla_grad(phi_theta)/psi, nabla_grad(v_1)) - dt*f1*v_1)*dx + \
         ((c2_new-c2)*v_2 + dt*inner(D2*nabla_grad(c2_theta) + \
         D2*c2_theta*z2*nabla_grad(phi_theta)/psi, nabla_grad(v_2)) - dt*f2*v_2)*dx + \
-        (eps*inner(nabla_grad(phi_new),nabla_grad(v_phi)) + dummy_new*v_phi + phi_new*d - rho*v_phi)*dx
+        (eps*inner(nabla_grad(phi_new),nabla_grad(v_phi)) + dummy_new*v_phi + phi_theta*d - rho*v_phi)*dx
 
     dw = TrialFunction(W)
     Jac = derivative(form, u_new, dw)
@@ -109,6 +109,7 @@ def run_mms(dt,N):
 
     tv = 0
 
+    N_t = int(0.01/dt)
     for i in range(100):
         tv += dt
         c1_e.t = tv
@@ -137,7 +138,7 @@ if __name__ == '__main__':
         errors_phi = []
         h = []
         N_list = [100, 200, 400, 800]
-        dt = 1e-6
+        dt = 1e-7
 
         # Spatial convergence test
         for N in N_list:
@@ -146,6 +147,7 @@ if __name__ == '__main__':
             errors_c1.append(error_c1)
             errors_c2.append(error_c2)
             errors_phi.append(error_phi)
+            dt = dt/2
 
         print h
         print errors_c1
@@ -153,7 +155,9 @@ if __name__ == '__main__':
         print errors_phi
         for i in range(len(N_list) - 1):
             print math.log(errors_c1[i] / errors_c1[i+1]) / math.log(h[i] / h[i+1])
+        for i in range(len(N_list) - 1):
             print math.log(errors_c2[i] / errors_c2[i+1]) / math.log(h[i] / h[i+1])
+        for i in range(len(N_list) - 1):
             print math.log(errors_phi[i] / errors_phi[i+1]) / math.log(h[i] / h[i+1])
 
 
