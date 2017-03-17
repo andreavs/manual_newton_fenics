@@ -28,7 +28,7 @@ boundary for the electric field.
 """
 
 
-def run_mms(dt,N):
+def run_mms(dt,N, theta=1):
     mesh = UnitIntervalMesh(N)
 
     # Defining functions and FEniCS stuff:
@@ -44,11 +44,10 @@ def run_mms(dt,N):
     c1, c2, phi, dummy = split(u)
     c1_new, c2_new, phi_new, dummy_new = split(u_new)
 
-    theta = 0.5
-    c1_theta = theta*c1 + (1-theta)*c1_new
-    c2_theta = theta*c2 + (1-theta)*c2_new
-    phi_theta = theta*phi + (1-theta)*phi_new
-    dummy_theta = theta*d + (1-theta)*dummy_new
+    c1_theta = (1-theta)*c1 + theta*c1_new
+    c2_theta = (1-theta)*c2 + theta*c2_new
+    phi_theta = (1-theta)*phi + theta*phi_new
+    dummy_theta = (1-theta)*d + theta*dummy_new
 
     # Params:
     F = 9.648e4 # Faradays constant, C/mol
@@ -100,7 +99,7 @@ def run_mms(dt,N):
         D1*c1_theta*z1*nabla_grad(phi_theta)/psi, nabla_grad(v_1)) - dt*f1*v_1)*dx + \
         ((c2_new-c2)*v_2 + dt*inner(D2*nabla_grad(c2_theta) + \
         D2*c2_theta*z2*nabla_grad(phi_theta)/psi, nabla_grad(v_2)) - dt*f2*v_2)*dx + \
-        (eps*inner(nabla_grad(phi_new),nabla_grad(v_phi)) + dummy_new*v_phi + phi_theta*d - rho*v_phi)*dx
+        (eps*inner(nabla_grad(phi_new),nabla_grad(v_phi)) + dummy_new*v_phi + phi_new*d - rho*v_phi)*dx
 
     dw = TrialFunction(W)
     Jac = derivative(form, u_new, dw)
@@ -110,6 +109,9 @@ def run_mms(dt,N):
     tv = 0
 
     N_t = int(0.01/dt)
+
+    error_c1 = Function(V)
+    error_c2 = Function(V)
     for i in range(100):
         tv += dt
         c1_e.t = tv
@@ -142,12 +144,12 @@ if __name__ == '__main__':
 
         # Spatial convergence test
         for N in N_list:
-            error_c1, error_c2, error_phi, hmin = run_mms(dt, N)
+            error_c1, error_c2, error_phi, hmin = run_mms(dt, N, theta=1)
             h.append(hmin)
             errors_c1.append(error_c1)
             errors_c2.append(error_c2)
             errors_phi.append(error_phi)
-            dt = dt/2
+            dt = dt
 
         print h
         print errors_c1
