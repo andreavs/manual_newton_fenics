@@ -79,7 +79,6 @@ z2 = -1 # valency
 dt = 1e-3 # time step, ms
 
 # Form:
-
 rho = F*(z1*c1_new + z2*c2_new)
 # rho = Constant(0)
 form = ((c1_new-c1)*v_1 + dt*inner(D1*nabla_grad(c1_new) + \

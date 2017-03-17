@@ -65,6 +65,8 @@ def run_mms(dt, N, end_time, theta=0):
     z1 = 1   # valency
     z2 = -1  # valency
 
+    # dt = 1e-3 # time step, ms
+
     t = Constant(0)
     x = SpatialCoordinate(mesh)
 
