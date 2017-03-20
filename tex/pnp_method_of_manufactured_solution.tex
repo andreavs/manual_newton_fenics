@@ -84,9 +84,9 @@ where $\rho$ is the charge concentration, $F$ is Faradays constant, $\epsilon$ i
 
 We will use Dirichlet boundary conditions for the concentrations, and a pure von Neumann boundary condition for the field: 
 \begin{align}
-c_1 & = c_1^D & \text{on } \partial \Omega \\
-c_2 & = c_2^D & \text{on } \partial \Omega \\
-\nabla \phi \cdot \nvec & = 0 & \text{on } \partial \Omega 
+c_1 & = c_1^D & \text{on } \partial \Omega \label{equ:c1}\\
+c_2 & = c_2^D & \text{on } \partial \Omega \label{equ:c2}\\
+\nabla \phi \cdot \nvec & = 0 & \text{on } \partial \Omega \label{equ:poisson} 
 \end{align}
 
  
@@ -111,7 +111,26 @@ Note that in terms of natural constants, $\psi = RT/F$, where $R$ is the gas con
 
 \section{FEniCS implementation}
 
+
 \subsection{Time discretization}
+We use a finite difference time discretization scheme, which means that we discretetize the time into equispaced points, $t^n$, were 
+\begin{equation}
+t^n = n\Delta t
+\end{equation}
+where $\Delta t$ is the space between adjacent time points. We let $c_i^n$ denote the value of $c_i$ at time $t^n$. In order to discretize equations \cref{equ:c1,equ:c2,equ:poisson} in time, we can set the left hand sides as 
+\begin{align}
+{\partial c_i \over \partial t} = {c_i^{n+1} - c_i^n \over \Delta t}, \\
+\nabla^2 \phi = \nabla^2 \phi^{n+1}.
+\end{align}
+One the right hand side, we can enter concentrations at either time $n$ or $n+1$. We can also enter a combination of the two. Generally, we can define
+\begin{equation}
+c^\theta = (1-\theta)c^n + \theta c^{n+1}
+\end{equation}
+we then set the right hand side as 
+\begin{equation}
+\nabla \cdot \left[ D_i\nabla c_i + {D_iz_i \over \psi} c_i \nabla \phi \right] + f_i = \nabla \cdot \left[ D_i\nabla c_i^\theta + {D_iz_i \over \psi} c_i \nabla \phi^\theta \right] + f_i^\theta
+\end{equation}
+
 
 \subsection{Weak form}
 
