@@ -124,12 +124,18 @@ where $\Delta t$ is the space between adjacent time points. We let $c_i^n$ denot
 \end{align}
 One the right hand side, we can enter concentrations at either time $n$ or $n+1$. We can also enter a combination of the two. Generally, we can define
 \begin{equation}
-c^\theta = (1-\theta)c^n + \theta c^{n+1}
+c^\theta = (1-\theta)c^n + \theta c^{n+1},
 \end{equation}
 we then set the right hand side as 
 \begin{equation}
-\nabla \cdot \left[ D_i\nabla c_i + {D_iz_i \over \psi} c_i \nabla \phi \right] + f_i = \nabla \cdot \left[ D_i\nabla c_i^\theta + {D_iz_i \over \psi} c_i \nabla \phi^\theta \right] + f_i^\theta
+\nabla \cdot \left[ D_i\nabla c_i + {D_iz_i \over \psi} c_i \nabla \phi \right] + f_i = \nabla \cdot \left[ D_i\nabla c_i^\theta + {D_iz_i \over \psi} c_i \nabla \phi^\theta \right] + f_i^\theta.
 \end{equation}
+
+The Poisson equation is not time dependent, so we should solve for all elements at the same time step, 
+\begin{equation}
+\nabla^2 \phi^{n+1} = -{F \over \epsilon} (z_1c_1^{n+1} + z_2c_2^{n+1})
+\end{equation}
+
 
 
 \subsection{Weak form}
@@ -144,8 +150,8 @@ c_2 & = -{1\over z_2} \left( {F \over \epsilon}\nabla^2\phi + z_1c_1\right)
 
 From this we get the following demands for the source terms: 
 \begin{align}
-f_1 & = {\partial c_1 \over \partial t} - \nabla \cdot\left[ D_1 \nabla c_1 - {D_1z_1 \over \psi} c_1 \nabla \phi \right] \\ 
-f_2 & = {\partial c_2 \over \partial t} - \nabla \cdot\left[ D_2 \nabla c_2 - {D_2z_2 \over \psi} c_2 \nabla \phi \right]
+f_1 & = {\partial c_1 \over \partial t} - \nabla \cdot\left[ D_1 \nabla c_1 + {D_1z_1 \over \psi} c_1 \nabla \phi \right] \\ 
+f_2 & = {\partial c_2 \over \partial t} - \nabla \cdot\left[ D_2 \nabla c_2 + {D_2z_2 \over \psi} c_2 \nabla \phi \right]
 \end{align}
 
 \section{Example 1: Ions in a box: Liquid Junction Potential}

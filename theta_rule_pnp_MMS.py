@@ -22,7 +22,7 @@ We use dirichlet boundary conditions for the ions, and a pure von neuman
 boundary for the electric field.
 """
 
-# set_log_level(99)
+set_log_level(99)
 
 def run_mms(dt, N, end_time, theta=0):
     mesh = UnitIntervalMesh(N)
@@ -66,13 +66,17 @@ def run_mms(dt, N, end_time, theta=0):
     x = SpatialCoordinate(mesh)
 
     phi_cc = ((sin(pi*x[0]))**2 - 0.5)*cos(t)**2
+    # phi_cc = 0
     c1_cc = cos(x[0])**3 * sin(t)
     c2_cc = 1/z2*(-eps/F*div(nabla_grad(phi_cc)) - z1*(c1_cc))
+
+
 
     f1 = diff(c1_cc,t) - D1*div(nabla_grad(c1_cc) + (1.0/psi)*z1*c1_cc*nabla_grad(phi_cc))
     f2 = diff(c2_cc,t) - D2*div(nabla_grad(c2_cc) + (1.0/psi)*z2*c2_cc*nabla_grad(phi_cc))
 
     phi_e = Expression("(pow(sin(pi*x[0]), 2) - 0.5) * pow(cos(t),2)", t=time, degree=4)
+    # phi_e = Expression(0, t=time)
     c1_e = Expression("pow(cos(x[0]), 3) * sin(t)", D1=D1, t=time, degree=4)
     c2_e = Expression("1.0/z2*(-eps/F*2*pi*pi*pow(cos(t),2)*cos(2*pi*x[0]) - z1*pow(cos(x[0]), 3) * sin(t))",  \
         z2=z2, z1=z1, eps=eps, F=F, degree=4, t=time)
@@ -103,26 +107,37 @@ def run_mms(dt, N, end_time, theta=0):
     n_iter = int(end_time / dt)
     error_plot = Function(V)
     for i in range(n_iter):
-        tv += dt
+        tv += dt/2
+        t.assign(tv)
+        tv += dt/2
+
         c1_e.t = tv
         c2_e.t = tv
         phi_e.t = tv
-        t.assign(tv)
-
-        Newton_manual(Jac, form, u_new, u_res,bcs=bcs, max_it=1000, atol = 1e-12, rtol=1e-12)
+        # Newton_manual(Jac, form, u_new, u_res,bcs=bcs, max_it=100, atol = 1e-12, rtol=1e-12)
+        solve(form==0, u_new)
         assign(error_plot, u_new.sub(0))
         error_plot.assign(error_plot-project(c1_e, V))
-        plot(error_plot)
+        # plot(error_plot)
         assign(u, u_new)
 
-    interactive()
+    # interactive()
     c1_e_f = project(c1_e, V)
     c1_sol = Function(V)
     assign(c1_sol, u.sub(0))
 
-    error_c1 = errornorm(c1_e, c1_sol, norm_type="l2", degree_rise=3)
-    error_c2 = errornorm(c2_e, u.sub(1), norm_type="l2", degree_rise=3)
-    error_phi = errornorm(phi_e, u.sub(2), norm_type="l2", degree_rise=3)
+    c2_e_f = project(c2_e, V)
+    c2_sol = Function(V)
+    assign(c2_sol, u.sub(1))
+
+    phi_e_f = project(phi_e, V)
+    phi_sol = Function(V)
+    assign(phi_sol, u.sub(2))
+
+
+    error_c1 = errornorm(c1_sol, c1_e_f, norm_type="l2", degree_rise=3)
+    error_c2 = errornorm(c2_sol, c2_e_f, norm_type="l2", degree_rise=3)
+    error_phi = errornorm(phi_sol, phi_e_f, norm_type="l2", degree_rise=3)
 
     return error_c1, error_c2, error_phi, mesh.hmin()
 
@@ -149,6 +164,10 @@ def run_convergence(N_list, dt_list, theta=0):
     N = max(len(N_list), len(dt_list)) - 1
     h = h if len(N_list) > len(dt_list) else dt_list
 
+    print errors_c1
+    print errors_c2
+    print errors_phi
+
     print "Spatial convergence C1"
     for i in range(N):
         print math.log(errors_c1[i] / errors_c1[i+1]) / math.log(h[i] / h[i+1])
@@ -159,10 +178,11 @@ def run_convergence(N_list, dt_list, theta=0):
 
     print "Spatial convergence phi"
     for i in range(N):
-        print math.log(errors_c2[i] / errors_c2[i+1]) / math.log(h[i] / h[i+1])
+        print math.log(errors_phi[i] / errors_phi[i+1]) / math.log(h[i] / h[i+1])
 
     print "\n"
 
 if __name__ == '__main__':
-        run_convergence([100, 200, 400, 800], [1e-6])
-        run_convergence([800], [0.001, 0.0005, 0.00025])
+        theta = 0.5
+        # run_convergence([100, 200, 400, 800], [1e-6])
+        run_convergence([250], [1e-4, 0.5e-4, 1e-5, 0.5e-5], theta=theta)
