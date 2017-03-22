@@ -20,7 +20,7 @@ a = u*v*dx
 L = phi_cc*v*dx
 
 tv = 0
-dt = 0.1
+dt = 1
 for i in range(10):
     tv += dt
     t.assign(tv)
