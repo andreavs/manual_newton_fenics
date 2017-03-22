@@ -12,8 +12,10 @@ v = TestFunction(W)
 u_sol = Function(W)
 t = Constant(0)
 
-phi_cc = ((sin(pi*x[0]))**2 - 0.5)*cos(t)**2
-phi_e = Expression('(pow(sin(pi*x[0]),2) - 0.5)*pow(cos(t),2)', t=0.)
+# phi_cc = ((sin(pi*x[0]))**2 - 0.5)*cos(t)**2
+# phi_e = Expression('(pow(sin(pi*x[0]),2) - 0.5)*pow(cos(t),2)', t=0.)
+phi_cc = sin(x[0])
+phi_e = Expression('sin(x[0])', t=0)
 
 
 a = u*v*dx
@@ -27,8 +29,9 @@ for i in range(10):
     phi_e.t = tv
     solve(a==L, u_sol)
 
-print u_sol.vector().array()
-phi_e_func = project(phi_e, W)
-print phi_e_func.vector().array()
-error = u_sol.vector().array() - phi_e_func.vector().array()
-print error
+    # print u_sol.vector().array()
+
+    phi_e_func = project(phi_e, W)
+    # print phi_e_func.vector().array()
+    error = u_sol.vector().array() - phi_e_func.vector().array()
+    print error
