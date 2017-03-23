@@ -74,11 +74,11 @@ def run_mms(dt, N, end_time, theta=0):
     f2 = diff(c2_cc,t) - D2*div(nabla_grad(c2_cc) + (1.0/psi)*z2*c2_cc*nabla_grad(phi_cc))
 
 
-    phi_e = Expression("(pow(sin(pi*x[0]), 2) - 0.5) * pow(cos(t),2)", t=time, degree=4)
+    phi_e = Expression("(pow(sin(pi*x[0]), 2) - 0.5) * pow(cos(t),2)", t=time, degree=6)
     # phi_e = Expression(0, t=time)
-    c1_e = Expression("pow(cos(x[0]), 3) * cos(t)", t=time, degree=4)
+    c1_e = Expression("pow(cos(x[0]), 3) * cos(t)", t=time, degree=6)
     c2_e = Expression("1.0/z2*(-eps/F*2*pi*pi*pow(cos(t),2)*cos(2*pi*x[0]) - z1*pow(cos(x[0]), 3) * cos(t))",  \
-        z2=z2, z1=z1, eps=eps, F=F, degree=4, t=time)
+        z2=z2, z1=z1, eps=eps, F=F, degree=6, t=time)
 
     assign(u.sub(0), interpolate(c1_e, V))
     assign(u.sub(1), interpolate(c2_e, V))
@@ -116,7 +116,8 @@ def run_mms(dt, N, end_time, theta=0):
         c1_e.t = tv
         c2_e.t = tv
         phi_e.t = tv
-        Newton_manual(Jac, form, u_new, u_res,bcs=bcs, max_it=100, atol = 1e-12, rtol=1e-12)
+        # Newton_manual(Jac, form, u_new, u_res,bcs=bcs, max_it=100, atol = 1e-12, rtol=1e-12)
+        solve(form==0, u_new, bcs)
         assign(u, u_new)
 
 
@@ -185,5 +186,5 @@ def run_convergence(N_list, dt_list, theta=0):
 
 if __name__ == '__main__':
         theta = 0.5
-        # run_convergence([100, 200, 400, 800], [1e-6])
-        run_convergence([1000], [1e-1, 0.5e-1, 1e-2, 0.5e-2], theta=theta)
+        # run_convergence([10, 20, 40, 80], [1e-6])
+        run_convergence([200], [1e-2, 0.5e-2, 1e-3, 0.5e-3], theta=theta)
