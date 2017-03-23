@@ -14,7 +14,7 @@ def Newton_manual(J, F, u, u_res, bcs=[], atol=1e-12, rtol=1e-12, max_it=20,
 
         # Solve linear system
         [bc.apply(A, b, u.vector()) for bc in bcs]
-        solve(A, u_res.vector(), b)
+        solve(A, u_res.vector(), solver_parameters={"linear_solver": "gmres"})
 
         # Update solution
         u.vector().axpy(relax, u_res.vector())

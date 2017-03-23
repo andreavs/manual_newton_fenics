@@ -15,7 +15,7 @@ t = Constant(0)
 # phi_cc = ((sin(pi*x[0]))**2 - 0.5)*cos(t)**2
 # phi_e = Expression('(pow(sin(pi*x[0]),2) - 0.5)*pow(cos(t),2)', t=0.)
 phi_cc = sin(x[0])
-phi_e = Expression('sin(x[0])', t=0)
+phi_e = Expression('sin(x[0])', t=0, degree=6)
 
 
 a = u*v*dx

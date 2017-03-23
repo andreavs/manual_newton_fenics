@@ -39,7 +39,6 @@ def run_mms(dt, N, end_time, theta=0):
 
     c1, c2, phi, dummy = split(u)
     c1_new, c2_new, phi_new, dummy_new = split(u_new)
-
     theta_float = theta
     theta = Constant(theta)
     c1_theta = theta*c1 + (1-theta)*c1_new
@@ -63,22 +62,21 @@ def run_mms(dt, N, end_time, theta=0):
 
     # dt = 1e-3 # time step, ms
 
-    t = Constant(0)
+
+
     x = SpatialCoordinate(mesh)
-
+    t = Constant(0)
     phi_cc = ((sin(pi*x[0]))**2 - 0.5)*cos(t)**2
-    # phi_cc = 0
-    c1_cc = cos(x[0])**3 * cos(t)
+    # # phi_cc = 0
+    c1_cc = cos(x[0])**3*cos(t)
     c2_cc = 1/z2*(-eps/F*div(nabla_grad(phi_cc)) - z1*(c1_cc))
-
-
-
     f1 = diff(c1_cc,t) - D1*div(nabla_grad(c1_cc) + (1.0/psi)*z1*c1_cc*nabla_grad(phi_cc))
     f2 = diff(c2_cc,t) - D2*div(nabla_grad(c2_cc) + (1.0/psi)*z2*c2_cc*nabla_grad(phi_cc))
 
+
     phi_e = Expression("(pow(sin(pi*x[0]), 2) - 0.5) * pow(cos(t),2)", t=time, degree=4)
     # phi_e = Expression(0, t=time)
-    c1_e = Expression("pow(cos(x[0]), 3) * cos(t)", D1=D1, t=time, degree=4)
+    c1_e = Expression("pow(cos(x[0]), 3) * cos(t)", t=time, degree=4)
     c2_e = Expression("1.0/z2*(-eps/F*2*pi*pi*pow(cos(t),2)*cos(2*pi*x[0]) - z1*pow(cos(x[0]), 3) * cos(t))",  \
         z2=z2, z1=z1, eps=eps, F=F, degree=4, t=time)
 
@@ -90,7 +88,7 @@ def run_mms(dt, N, end_time, theta=0):
     def boundary(x, on_boundary):
         return on_boundary
 
-    bcs = [DirichletBC(W.sub(0), c1_e, boundary), DirichletBC(W.sub(1), c2_e, boundary)]
+    bcs = [DirichletBC(W.sub(0), c1_e, "on_boundary"), DirichletBC(W.sub(1), c2_e, "on_boundary")]
 
     rho = F*(z1*c1_new + z2*c2_new)
     k = Constant(dt)
@@ -107,22 +105,21 @@ def run_mms(dt, N, end_time, theta=0):
     tv = 0
     n_iter = int(end_time / dt)
     error_plot = Function(V)
+    error_plot2 = Function(V)
+    error_plot3 = Function(V)
     for i in range(n_iter):
         tv += (1-theta_float)*dt
         t.assign(tv)
         tv += theta_float*dt
-
+        # f1.t = tv
+        # f2.t = tv
         c1_e.t = tv
         c2_e.t = tv
         phi_e.t = tv
         Newton_manual(Jac, form, u_new, u_res,bcs=bcs, max_it=100, atol = 1e-12, rtol=1e-12)
-        # solve(form==0, u_new, bcs)
-        assign(error_plot, u_new.sub(0))
-        error_plot.assign(error_plot-project(c1_e, V))
-        # plot(error_plot)
         assign(u, u_new)
 
-    # interactive()
+
     c1_e_f = project(c1_e, V)
     c1_sol = Function(V)
     assign(c1_sol, u.sub(0))
@@ -132,13 +129,16 @@ def run_mms(dt, N, end_time, theta=0):
     assign(c2_sol, u.sub(1))
 
     phi_e_f = project(phi_e, V)
-    phi_sol = Function(V)
-    assign(phi_sol, u.sub(2))
+    phi_sol = project(phi_cc, V)
 
+    error_c1 = errornorm(c1_e_f, c1_sol, norm_type="l2", degree_rise=3)
+    error_c2 = errornorm(c2_e_f, c2_sol, norm_type="l2", degree_rise=3)
+    error_phi = errornorm(phi_e_f, phi_sol, norm_type="l2", degree_rise=3)
 
-    error_c1 = errornorm(c1_sol, c1_e_f, norm_type="l2", degree_rise=3)
-    error_c2 = errornorm(c2_sol, c2_e_f, norm_type="l2", degree_rise=3)
-    error_phi = errornorm(phi_sol, phi_e_f, norm_type="l2", degree_rise=3)
+    print "norms:"
+    print norm(u.sub(0), norm_type="l2")
+    print norm(u.sub(1), norm_type="l2")
+    print norm(u.sub(2), norm_type="l2")
 
     return error_c1, error_c2, error_phi, mesh.hmin()
 
@@ -150,15 +150,13 @@ def run_convergence(N_list, dt_list, theta=0):
     h = []
     type_of_convergence = "Spatial" if len(N_list) > len(dt_list) else "Temporal"
     print "="*15, type_of_convergence, "="*15
-    end_time = dt_list[0]*10 if type_of_convergence == "Spatial" else max(dt_list)*100
-    end_time = 1e-3
-    print end_time
-    # end_time = 1e-6
+    # end_time = 0.05
+    end_time = dt_list[0]*10 if type_of_convergence == "Spatial" else max(dt_list)*4
     for N in N_list:
         for dt in dt_list:
             print N, dt
             error_c1, error_c2, error_phi, hmin = run_mms(dt, N, end_time,
-                                                          theta=theta)
+                theta=theta)
             h.append(hmin)
             errors_c1.append(error_c1)
             errors_c2.append(error_c2)
@@ -186,6 +184,6 @@ def run_convergence(N_list, dt_list, theta=0):
     print "\n"
 
 if __name__ == '__main__':
-        theta = 0
-        # run_convergence([10, 20, 40, 80], [1e-8], theta=theta)
-        run_convergence([250], [1e-5], theta=theta)
+        theta = 0.5
+        # run_convergence([100, 200, 400, 800], [1e-6])
+        run_convergence([1000], [1e-1, 0.5e-1, 1e-2, 0.5e-2], theta=theta)
