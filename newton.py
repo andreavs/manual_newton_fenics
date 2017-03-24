@@ -29,7 +29,7 @@ def Newton_manual(J, F, u, u_res, bcs=[], atol=1e-12, rtol=1e-12, max_it=20,
         assign(f, c1)
         f.assign(f-project(c1_e,V))
         plot(f, title="Iteration:" + str(Iter))
-        time.sleep(1)
+        time.sleep(0.5)
 
         if Iter == 0:
             rel_res0 = residual

@@ -30,6 +30,7 @@ def run_mms(dt, N, end_time, theta=0):
 
     # Defining functions and FEniCS stuff:
     V = FunctionSpace(mesh, 'CG', degree)
+
     R = FunctionSpace(mesh, 'R', 0)
     W = MixedFunctionSpace([V, V, V, R])
     v_1, v_2, v_phi, d = TestFunctions(W)
@@ -69,6 +70,7 @@ def run_mms(dt, N, end_time, theta=0):
     c1_cc = cos(x[0])**3 * cos(t)
     c2_cc = 1/z2*(-eps/F*div(grad(phi_cc)) - z1*(c1_cc))
 
+
     f1 = diff(c1_cc,t) - D1*div(grad(c1_cc) + (1.0/psi)*z1*c1_cc*grad(phi_cc))
     f2 = diff(c2_cc,t) - D2*div(grad(c2_cc) + (1.0/psi)*z2*c2_cc*grad(phi_cc))
 
@@ -77,6 +79,7 @@ def run_mms(dt, N, end_time, theta=0):
     c1_e = Expression("pow(cos(x[0]), 3) * cos(t)", D1=D1, t=time, degree=degree)
     c2_e = Expression("1.0/z2*(-eps/F*2*pi*pi*pow(cos(t),2)*cos(2*pi*x[0]) - z1*pow(cos(x[0]), 3) * cos(t))",  \
                         z2=z2, z1=z1, eps=eps, F=F, degree=degree, t=time)
+
 
     assign(u.sub(0), interpolate(c1_e, V))
     assign(u.sub(1), interpolate(c2_e, V))
@@ -132,7 +135,9 @@ def run_mms(dt, N, end_time, theta=0):
         c1_e.t = tv
         c2_e.t = tv
         phi_e.t = tv
-        Newton_manual(Jac, form, u_new, u_res,bcs=bcs, max_it=100, atol = 1e-12, rtol=1e-12, c1_e=c1_e, V=V)
+        Newton_manual(Jac, form, u_new, u_res,bcs=bcs, max_it=20, atol = 1e-12, rtol=1e-12, c1_e=c1_e, V=V)
+        # Newton_manual(Jac, form, u_new, u_res,bcs=bcs, max_it=100, atol = 1e-12, rtol=1e-12)
+
         assign(u, u_new)
 
     # interactive()
@@ -195,7 +200,6 @@ def run_convergence(N_list, dt_list, theta=0):
 
 if __name__ == '__main__':
         theta = 0
-        run_convergence([100, 200, 400], [1e-6], theta=0)
-
-        run_convergence([1200], [4e-2, 2e-2, 1e-2], theta=0)
+        # run_convergence([100, 200, 400], [1e-6], theta=0)
+        run_convergence([1200], [4e-2, 2e-2, 1e-2], theta=0.5)
         #run_convergence([250], [1e-5], theta=theta)
