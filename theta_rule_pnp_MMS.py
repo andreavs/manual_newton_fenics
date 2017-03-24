@@ -25,10 +25,11 @@ boundary for the electric field.
 set_log_level(99)
 
 def run_mms(dt, N, end_time, theta=0):
+    degree = 1
     mesh = UnitIntervalMesh(N)
 
     # Defining functions and FEniCS stuff:
-    V = FunctionSpace(mesh, 'CG', 1)
+    V = FunctionSpace(mesh, 'CG', degree)
     R = FunctionSpace(mesh, 'R', 0)
     W = MixedFunctionSpace([V, V, V, R])
     v_1, v_2, v_phi, d = TestFunctions(W)
@@ -61,26 +62,21 @@ def run_mms(dt, N, end_time, theta=0):
     z1 = 1   # valency
     z2 = -1  # valency
 
-    # dt = 1e-3 # time step, ms
-
     t = Constant(0)
     x = SpatialCoordinate(mesh)
 
     phi_cc = ((sin(pi*x[0]))**2 - 0.5)*cos(t)**2
-    # phi_cc = 0
     c1_cc = cos(x[0])**3 * cos(t)
-    c2_cc = 1/z2*(-eps/F*div(nabla_grad(phi_cc)) - z1*(c1_cc))
+    c2_cc = 1/z2*(-eps/F*div(grad(phi_cc)) - z1*(c1_cc))
 
+    f1 = diff(c1_cc,t) - D1*div(grad(c1_cc) + (1.0/psi)*z1*c1_cc*grad(phi_cc))
+    f2 = diff(c2_cc,t) - D2*div(grad(c2_cc) + (1.0/psi)*z2*c2_cc*grad(phi_cc))
 
-
-    f1 = diff(c1_cc,t) - D1*div(nabla_grad(c1_cc) + (1.0/psi)*z1*c1_cc*nabla_grad(phi_cc))
-    f2 = diff(c2_cc,t) - D2*div(nabla_grad(c2_cc) + (1.0/psi)*z2*c2_cc*nabla_grad(phi_cc))
-
-    phi_e = Expression("(pow(sin(pi*x[0]), 2) - 0.5) * pow(cos(t),2)", t=time, degree=4)
-    # phi_e = Expression(0, t=time)
-    c1_e = Expression("pow(cos(x[0]), 3) * cos(t)", D1=D1, t=time, degree=4)
+    phi_e = Expression("(pow(sin(pi*x[0]), 2) - 0.5) * pow(cos(t),2)", t=time,
+                       degree=degree)
+    c1_e = Expression("pow(cos(x[0]), 3) * cos(t)", D1=D1, t=time, degree=degree)
     c2_e = Expression("1.0/z2*(-eps/F*2*pi*pi*pow(cos(t),2)*cos(2*pi*x[0]) - z1*pow(cos(x[0]), 3) * cos(t))",  \
-        z2=z2, z1=z1, eps=eps, F=F, degree=4, t=time)
+                        z2=z2, z1=z1, eps=eps, F=F, degree=degree, t=time)
 
     assign(u.sub(0), interpolate(c1_e, V))
     assign(u.sub(1), interpolate(c2_e, V))
@@ -94,16 +90,37 @@ def run_mms(dt, N, end_time, theta=0):
 
     rho = F*(z1*c1_new + z2*c2_new)
     k = Constant(dt)
-    form = ((c1_new-c1)*v_1 + k*inner(D1*nabla_grad(c1_theta) + \
-        D1*c1_theta*z1*nabla_grad(phi_cc)/psi, nabla_grad(v_1)) - k*f1*v_1)*dx + \
-        ((c2_new-c2)*v_2 + k*inner(D2*nabla_grad(c2_theta) + \
-        D2*c2_theta*z2*nabla_grad(phi_cc)/psi, nabla_grad(v_2)) - k*f2*v_2)*dx + \
-        (eps*inner(nabla_grad(phi_new), nabla_grad(v_phi)) + dummy_new*v_phi + phi_new*d - rho*v_phi)*dx
+
+    #Form for C1
+    form_c1 = (1./k*inner(c1_new-c1, v_1)*dx
+              + inner(D1*grad(c1_theta), grad(v_1))*dx
+              + inner(D1*c1_theta*z1*grad(phi_theta)/psi, grad(v_1))*dx
+              - inner(f1, v_1)*dx)
+
+    # Form for C2
+    form_c2 = (1./k*inner(c2_new - c2, v_2)*dx
+               + D2*inner(grad(c2_theta), grad(v_2))*dx
+               + D2*c2_theta*z2/psi*inner(grad(phi_theta), grad(v_2))*dx
+               - inner(f2, v_2)*dx)
+
+    # Form for phi
+    form_phi = (eps*inner(grad(phi_new), grad(v_phi))*dx
+                + inner(dummy_new, v_phi)*dx
+                + inner(phi_new, d)*dx
+                - inner(rho, v_phi)*dx)
+
+    form = form_c1 + form_c2 + form_phi
+
+
+#    form = ((c1_new-c1)*v_1 + k*inner(D1*grad(c1_theta) + \
+#        D1*c1_theta*z1*grad(phi_cc)/psi, grad(v_1)) - k*f1*v_1)*dx + \
+#        ((c2_new-c2)*v_2 + k*inner(D2*grad(c2_theta) + \
+#        D2*c2_theta*z2*grad(phi_cc)/psi, grad(v_2)) - k*f2*v_2)*dx + \
+#        (eps*inner(grad(phi_new), grad(v_phi)) + dummy_new*v_phi + phi_new*d - rho*v_phi)*dx
 
     dw = TrialFunction(W)
     Jac = derivative(form, u_new, dw)
     u_res = Function(W)
-
     tv = 0
     n_iter = int(end_time / dt)
     error_plot = Function(V)
@@ -115,11 +132,7 @@ def run_mms(dt, N, end_time, theta=0):
         c1_e.t = tv
         c2_e.t = tv
         phi_e.t = tv
-        Newton_manual(Jac, form, u_new, u_res,bcs=bcs, max_it=100, atol = 1e-12, rtol=1e-12)
-        # solve(form==0, u_new, bcs)
-        assign(error_plot, u_new.sub(0))
-        error_plot.assign(error_plot-project(c1_e, V))
-        # plot(error_plot)
+        Newton_manual(Jac, form, u_new, u_res,bcs=bcs, max_it=100, atol = 1e-12, rtol=1e-12, c1_e=c1_e, V=V)
         assign(u, u_new)
 
     # interactive()
@@ -150,9 +163,8 @@ def run_convergence(N_list, dt_list, theta=0):
     h = []
     type_of_convergence = "Spatial" if len(N_list) > len(dt_list) else "Temporal"
     print "="*15, type_of_convergence, "="*15
-    end_time = dt_list[0]*10 if type_of_convergence == "Spatial" else max(dt_list)*100
-    end_time = 1e-3
-    print end_time
+    end_time = dt_list[0]*5 if type_of_convergence == "Spatial" else max(dt_list)*2
+    #end_time = 1e-3
     # end_time = 1e-6
     for N in N_list:
         for dt in dt_list:
@@ -166,10 +178,6 @@ def run_convergence(N_list, dt_list, theta=0):
 
     N = max(len(N_list), len(dt_list)) - 1
     h = h if len(N_list) > len(dt_list) else dt_list
-
-    print errors_c1
-    print errors_c2
-    print errors_phi
 
     print "Spatial convergence C1"
     for i in range(N):
@@ -187,5 +195,7 @@ def run_convergence(N_list, dt_list, theta=0):
 
 if __name__ == '__main__':
         theta = 0
-        # run_convergence([10, 20, 40, 80], [1e-8], theta=theta)
-        run_convergence([250], [1e-5], theta=theta)
+        run_convergence([100, 200, 400], [1e-6], theta=0)
+
+        run_convergence([1200], [4e-2, 2e-2, 1e-2], theta=0)
+        #run_convergence([250], [1e-5], theta=theta)

@@ -24,27 +24,16 @@ boundary for the electric field.
 
 set_log_level(99)
 
+
+
 def run_mms(dt, N, end_time, theta=0):
     mesh = UnitIntervalMesh(N)
 
     # Defining functions and FEniCS stuff:
-    V = FunctionSpace(mesh, 'CG', 1)
+    degree = 1
+    V = FunctionSpace(mesh, 'CG', degree)
     R = FunctionSpace(mesh, 'R', 0)
     W = MixedFunctionSpace([V, V, V, R])
-    v_1, v_2, v_phi, d = TestFunctions(W)
-
-    time = 0
-    u = Function(W)
-    u_new = Function(W)
-
-    c1, c2, phi, dummy = split(u)
-    c1_new, c2_new, phi_new, dummy_new = split(u_new)
-    theta_float = theta
-    theta = Constant(theta)
-    c1_theta = theta*c1 + (1-theta)*c1_new
-    c2_theta = theta*c2 + (1-theta)*c2_new
-    phi_theta = theta*phi + (1-theta)*phi_new
-    dummy_theta = theta*d + (1-theta)*dummy_new
 
     # Params:
     F = 9.648e4   # Faradays constant, C/mol
@@ -59,6 +48,7 @@ def run_mms(dt, N, end_time, theta=0):
     D2 = 1.0 # diffusion coefficient
     z1 = 1   # valency
     z2 = -1  # valency
+    time = 0
 
     # dt = 1e-3 # time step, ms
 
@@ -74,15 +64,45 @@ def run_mms(dt, N, end_time, theta=0):
     f2 = diff(c2_cc,t) - D2*div(nabla_grad(c2_cc) + (1.0/psi)*z2*c2_cc*nabla_grad(phi_cc))
 
 
-    phi_e = Expression("(pow(sin(pi*x[0]), 2) - 0.5) * pow(cos(t),2)", t=time, degree=6)
+    phi_e = Expression("(pow(sin(pi*x[0]), 2) - 0.5) * pow(cos(t),2)", t=time, degree=degree, domain=mesh)
     # phi_e = Expression(0, t=time)
-    c1_e = Expression("pow(cos(x[0]), 3) * cos(t)", t=time, degree=6)
+    c1_e = Expression("pow(cos(x[0]), 3) * cos(t)", t=time, degree=degree)
     c2_e = Expression("1.0/z2*(-eps/F*2*pi*pi*pow(cos(t),2)*cos(2*pi*x[0]) - z1*pow(cos(x[0]), 3) * cos(t))",  \
-        z2=z2, z1=z1, eps=eps, F=F, degree=6, t=time)
+        z2=z2, z1=z1, eps=eps, F=F, degree=degree, t=time)
+
+    u_0 = Expression(("pow(cos(x[0]), 3) * cos(t)", "1.0/z2*(-eps/F*2*pi*pi*pow(cos(t),2)*cos(2*pi*x[0]) - z1*pow(cos(x[0]), 3) * cos(t))", "(pow(sin(pi*x[0]), 2) - 0.5) * pow(cos(t),2)", "0"), z2=z2, z1=z1, eps=eps, F=F, degree=degree, t=time)
+
+    # P1 = FiniteElement('P', triangle, 1)
+    # R = FiniteElement('R', triangle, 0)
+    # element = MixedElement([P1, P1, P1, R])
+    # W = FunctionSpace(mesh, element)
+
+    v_1, v_2, v_phi, d = TestFunctions(W)
+
+
+    # u = project(u_0, W)
+    u = Function(W)
+    u_new = Function(W)
+
+    c1, c2, phi, dummy = split(u)
+    c1_new, c2_new, phi_new, dummy_new = split(u_new)
+    theta_float = theta
+    theta = Constant(theta)
+    c1_theta = theta*c1 + (1-theta)*c1_new
+    c2_theta = theta*c2 + (1-theta)*c2_new
+    phi_theta = theta*phi + (1-theta)*phi_new
+    dummy_theta = theta*d + (1-theta)*dummy_new
+
+
+
+    # assigner = FunctionAssigner(W.sub(0), V)
+
+
 
     assign(u.sub(0), interpolate(c1_e, V))
     assign(u.sub(1), interpolate(c2_e, V))
     assign(u.sub(2), interpolate(phi_e, V))
+    # u_0 = Expression()
 
     # boundary conditions
     def boundary(x, on_boundary):
@@ -96,7 +116,7 @@ def run_mms(dt, N, end_time, theta=0):
         D1*c1_theta*z1*nabla_grad(phi_cc)/psi, nabla_grad(v_1)) - k*f1*v_1)*dx + \
         ((c2_new-c2)*v_2 + k*inner(D2*nabla_grad(c2_theta) + \
         D2*c2_theta*z2*nabla_grad(phi_cc)/psi, nabla_grad(v_2)) - k*f2*v_2)*dx + \
-        (eps*inner(nabla_grad(phi_new), nabla_grad(v_phi)) + dummy_new*v_phi + phi_new*d - rho*v_phi)*dx
+        (phi_new*v_phi + dummy_new*v_phi + phi_new*d - phi_e*v_phi)*dx
 
     dw = TrialFunction(W)
     Jac = derivative(form, u_new, dw)
@@ -107,6 +127,9 @@ def run_mms(dt, N, end_time, theta=0):
     error_plot = Function(V)
     error_plot2 = Function(V)
     error_plot3 = Function(V)
+
+
+
     for i in range(n_iter):
         tv += (1-theta_float)*dt
         t.assign(tv)
@@ -117,10 +140,29 @@ def run_mms(dt, N, end_time, theta=0):
         c2_e.t = tv
         phi_e.t = tv
         # Newton_manual(Jac, form, u_new, u_res,bcs=bcs, max_it=100, atol = 1e-12, rtol=1e-12)
+
         solve(form==0, u_new, bcs)
-        assign(u, u_new)
+        assign(error_plot,u_new.sub(0))
+        # assign(error_plot,error_plot-project(c1_e, V))
+        # plot(error_plot - project(c1_e,V))
+        # interactive()
 
+        # c1, c2, phi, dummy = u.split()
+        # c1_new, c2_new, phi_new, dummy_new = u_new.split()
+        # assign(c1, c1_new)
+        # assign(c2, c2_new)
+        # assign(phi, phi_new)
+        # assign(dummy, dummy_new)
 
+        u.assign(u_new)
+
+        # assign(u.sub(0), u_new.sub(0))
+        # assign(u.sub(1), u_new.sub(1))
+        # assign(u.sub(2), u_new.sub(2))
+        # assign(c2, c2_new)
+        # assign(phi, phi_new)
+
+    interactive()
     c1_e_f = project(c1_e, V)
     c1_sol = Function(V)
     assign(c1_sol, u.sub(0))
@@ -132,14 +174,14 @@ def run_mms(dt, N, end_time, theta=0):
     phi_e_f = project(phi_e, V)
     phi_sol = project(phi_cc, V)
 
-    error_c1 = errornorm(c1_e_f, c1_sol, norm_type="l2", degree_rise=3)
-    error_c2 = errornorm(c2_e_f, c2_sol, norm_type="l2", degree_rise=3)
-    error_phi = errornorm(phi_e_f, phi_sol, norm_type="l2", degree_rise=3)
+    error_c1 = errornorm(c1_e_f, c1_sol, norm_type="l2", degree_rise=0)
+    error_c2 = errornorm(c2_e_f, c2_sol, norm_type="l2", degree_rise=0)
+    error_phi = errornorm(phi_e_f, phi_sol, norm_type="l2", degree_rise=0)
 
-    print "norms:"
-    print norm(u.sub(0), norm_type="l2")
-    print norm(u.sub(1), norm_type="l2")
-    print norm(u.sub(2), norm_type="l2")
+    # print "norms:"
+    # print norm(u.sub(0), norm_type="l2")
+    # print norm(u.sub(1), norm_type="l2")
+    # print norm(u.sub(2), norm_type="l2")
 
     return error_c1, error_c2, error_phi, mesh.hmin()
 
@@ -185,6 +227,6 @@ def run_convergence(N_list, dt_list, theta=0):
     print "\n"
 
 if __name__ == '__main__':
-        theta = 0.5
-        # run_convergence([10, 20, 40, 80], [1e-6])
-        run_convergence([200], [1e-2, 0.5e-2, 1e-3, 0.5e-3], theta=theta)
+        theta = 0
+        run_convergence([10, 20, 40, 80], [1e-6], theta = theta)
+        run_convergence([1000], [1e-2, 0.5e-2, 1e-3, 0.5e-3], theta=theta)

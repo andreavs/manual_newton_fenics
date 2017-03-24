@@ -1,11 +1,14 @@
 from fenics import *
+import numpy as np
+import time
 
 def Newton_manual(J, F, u, u_res, bcs=[], atol=1e-12, rtol=1e-12, max_it=20,
-                  relax=1, report_convergence=False):
+                  relax=1, report_convergence=True, c1_e=None, V=None):
     # Reset counters
     Iter = 0
     residual = 1
     rel_res = residual
+    f = Function(V)
 
     while rel_res > rtol and residual > atol and Iter < max_it:
         # Assemble system
@@ -22,6 +25,12 @@ def Newton_manual(J, F, u, u_res, bcs=[], atol=1e-12, rtol=1e-12, max_it=20,
 
         # Compute residual
         residual = b.norm('l2')
+        c1 = u.sub(0)
+        assign(f, c1)
+        f.assign(f-project(c1_e,V))
+        plot(f, title="Iteration:" + str(Iter))
+        time.sleep(1)
+
         if Iter == 0:
             rel_res0 = residual
             rel_res = 1
