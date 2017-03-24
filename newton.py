@@ -9,7 +9,7 @@ def Newton_manual(J, F, u, u_res, bcs=[], atol=1e-12, rtol=1e-12, max_it=20,
     residual = 1
     rel_res = residual
     f = Function(V)
-
+    f2 = Function(V)
     while rel_res > rtol and residual > atol and Iter < max_it:
         # Assemble system
         A = assemble(J)
@@ -25,10 +25,16 @@ def Newton_manual(J, F, u, u_res, bcs=[], atol=1e-12, rtol=1e-12, max_it=20,
 
         # Compute residual
         residual = b.norm('l2')
+        ba = b.array()
+        ba = ba[1:np.size(f2.vector().array())+1]
+        f2.vector()[:] = ba
+        print np.size(b.array())
+        print np.size(f.vector().array())
         c1 = u.sub(0)
         assign(f, c1)
         f.assign(f-project(c1_e,V))
         plot(f, title="Iteration:" + str(Iter))
+        plot(f2, title="residual")
         time.sleep(0.5)
 
         if Iter == 0:
