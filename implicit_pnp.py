@@ -46,8 +46,10 @@ init_cond = Expression('10 + (10*(x[0] < 50))', degree=1)
 assign(u.sub(0), interpolate(init_cond, V))
 assign(u.sub(1), interpolate(init_cond, V))
 
-c1, c2, phi, dummy = split(u)
-c1_new, c2_new, phi_new, dummy_new = split(u_new)
+# c1, c2, phi, dummy = split(u)
+c1, c2, phi, dummy = u[0],u[1], u[2], u[3]
+c1_new, c2_new, phi_new, dummy_new = u_new[0],u_new[1],u_new[2], u_new[3]
+# c1_new, c2_new, phi_new, dummy_new = split(u_new)
 
 
 # init_cond = Expression('10 + (100*(x[0] < 0.5))', degree=1)
@@ -76,7 +78,7 @@ D2 = 1.0 # diffusion coefficient
 z1 = 1 # valency
 z2 = -1 # valency
 
-dt = 1e-3 # time step, ms
+dt = 1e-4 # time step, ms
 
 # Form:
 rho = F*(z1*c1_new + z2*c2_new)
@@ -86,6 +88,7 @@ form = ((c1_new-c1)*v_1 + dt*inner(D1*nabla_grad(c1_new) + \
     ((c2_new-c2)*v_2 + dt*inner(D2*nabla_grad(c2_new) + \
     D2*c2_new*z2*nabla_grad(phi_new)/psi, nabla_grad(v_2)))*dx + \
     (eps*inner(nabla_grad(phi_new),nabla_grad(v_phi)) + dummy_new*v_phi + phi_new*d - rho*v_phi)*dx
+
 
 dw = TrialFunction(W)
 Jac = derivative(form, u_new, dw)
@@ -99,8 +102,8 @@ phiplot = Function(V)
 t = 0
 for i in range(2000):
     t += dt
-    Newton_manual(Jac, form, u_new, u_res,bcs=bcs, max_it=1000, atol = 1e-9, rtol=1e-8)
-    # solve(form==0, u_new)
+    Newton_manual(Jac, form, u_new, u_res,bcs=bcs, max_it=1000, atol = 1e-9, rtol=1e-6)
+    # solve(form==0, u_new, bcs)
     # u.assign(u_new)
     assign(u, u_new)
 
