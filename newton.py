@@ -16,8 +16,9 @@ def Newton_manual(J, F, u, u_res, bcs=[], deltas=[], atol=1e-12, rtol=1e-12, max
         # Solve linear system
         [bc.apply(A, b, u.vector()) for bc in bcs]
         [delta.apply(b) for delta in deltas]
-        solve(A, u_res.vector(), b)
-
+        print "got to this"
+        solve(A, u_res.vector(), b, 'mumps')
+        print "got past this"
 
         # Update solution
         u.vector().axpy(relax, u_res.vector())
